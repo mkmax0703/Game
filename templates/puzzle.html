@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solve the Puzzle</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 50px);
+            grid-template-rows: repeat(4, 50px);
+            gap: 5px;
+            position: relative;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #333;
+            background-color: #f9f9f9;
+        }
+        .cell.dropzone {
+            background-color: #e0e0e0;
+        }
+        .cell.hovered {
+            background-color: #ffcccb;  /* Highlight when hovering */
+        }
+        .piece {
+            display: grid;
+            grid-gap: 2px;
+            cursor: grab;
+            transition: transform 0.3s ease;
+            position: absolute;
+        }
+        .piece:active {
+            cursor: grabbing;
+        }
+        .block {
+            width: 50px;
+            height: 50px;
+            background-color: #00bfff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Solve the Puzzle</h1>
+
+    <div class="grid" id="puzzle-grid">
+        <!-- Grid for placing the pieces -->
+        {% for row in range(4) %}
+        {% for col in range(4) %}
+        <div class="cell dropzone" id="cell-{{ row }}-{{ col }}" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="leaveDrop(event)" ondragenter="enterDrop(event)"></div>
+        {% endfor %}
+        {% endfor %}
+    </div>
+
+    <h3>Your Pieces</h3>
+    <div>
+        {% for piece in pieces %}
+        <div class="piece" id="{{ piece.name }}" draggable="true" ondragstart="drag(event)">
+            <div style="display: grid; grid-template-columns: repeat({{ piece.shape[0]|length }}, 50px);">
+                {% for row in piece.shape %}
+                {% for cell in row %}
+                {% if cell == 1 %}
+                <div class="block"></div>  <!-- Render the block -->
+                {% else %}
+                <div style="width: 50px; height: 50px;"></div>  <!-- Empty space for 0 -->
+                {% endif %}
+                {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        let draggedPiece = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            draggedPiece = ev.target;
+
+            // Calculate the offset from the mouse position to the top-left corner of the piece
+            const rect = ev.target.getBoundingClientRect();
+            offsetX = ev.clientX - rect.left;
+            offsetY = ev.clientY - rect.top;
+
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.style.position = 'absolute';  // Ensure the piece moves smoothly
+            ev.target.style.zIndex = '1000';  // Bring it to the front during dragging
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            var dropZone = ev.target;
+
+            // Make sure the drop target is a valid dropzone
+            if (!dropZone.classList.contains('dropzone')) return;
+
+            // Correctly snap the piece to the grid based on the drop zone's top-left corner
+            const gridRect = document.getElementById('puzzle-grid').getBoundingClientRect();
+            const dropRect = dropZone.getBoundingClientRect();
+            
+            // Snapping the dragged piece to the grid relative to the overall grid container
+            draggedPiece.style.left = `${dropRect.left - gridRect.left}px`;
+            draggedPiece.style.top = `${dropRect.top - gridRect.top}px`;
+
+            // Append the piece to the grid
+            document.getElementById('puzzle-grid').appendChild(draggedPiece);
+
+            // Reset the dragged piece reference
+            draggedPiece = null;
+
+            // Remove hover effect
+            dropZone.classList.remove('hovered');
+        }
+
+        // Highlight the grid cell the mouse is over
+        function enterDrop(ev) {
+            if (ev.target.classList.contains('dropzone')) {
+                ev.target.classList.add('hovered');  // Add highlight
+            }
+        }
+
+        function leaveDrop(ev) {
+            if (ev.target.classList.contains('dropzone')) {
+                ev.target.classList.remove('hovered');  // Remove highlight
+            }
+        }
+
+        // Optional: Add transition for smooth movement
+        document.addEventListener('dragend', function(event) {
+            if (draggedPiece) {
+                draggedPiece.style.transform = 'translate(0, 0)';
+                draggedPiece.style.zIndex = '1';  // Reset zIndex after drop
+            }
+        });
+    </script>
+</body>
+</html>
